@@ -1,0 +1,59 @@
+
+<?php
+
+
+if (strpos(PHP_SAPI, 'cgi') === 0) {
+    exit("The cli tool is not supported when running php-cgi. It needs php-cli to function!\n\n");
+}
+
+$minPhpVersion = '7.4'; 
+if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
+    $message = sprintf(
+        'Your PHP version must be %s or higher to run CodeIgniter. Current version: %s',
+        $minPhpVersion,
+        PHP_VERSION
+    );
+
+    exit($message);
+}
+
+error_reporting(-1);
+ini_set('display_errors', '1');
+
+/**
+ * @var bool
+ *
+ * @deprecated No longer in use. `CodeIgniter` has `$context` property.
+ */
+define('SPARKED', true);
+
+define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR);
+
+chdir(FCPATH);
+
+
+require FCPATH . '../app/Config/Paths.php';
+
+
+$paths = new Config\Paths();
+
+require rtrim($paths->systemDirectory, '\\/ ') . DIRECTORY_SEPARATOR . 'bootstrap.php';
+
+require_once SYSTEMPATH . 'Config/DotEnv.php';
+(new CodeIgniter\Config\DotEnv(ROOTPATH))->load();
+
+$app = Config\Services::codeigniter();
+$app->initialize();
+
+$console = new CodeIgniter\CLI\Console();
+
+if (is_int($suppress = array_search('--no-header', $_SERVER['argv'], true))) {
+    unset($_SERVER['argv'][$suppress]); 
+    $suppress = true;
+}
+
+$console->showHeader($suppress);
+
+$exit = $console->run();
+
+exit(is_int($exit) ? $exit : EXIT_SUCCESS);
